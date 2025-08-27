@@ -1,0 +1,510 @@
+<!DOCTYPE html><html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Fred and Fudwa's quick meal prep plan</title>
+<style>
+  :root{
+    --bg:#0b0f17;      /* deep space */
+    --panel:#121826;   /* slate */
+    --accent:#ff2d55;  /* vibrant pink */
+    --accent2:#00e0b8; /* aqua */
+    --accent3:#ffd400; /* gold */
+    --accent4:#7c4dff; /* purple */
+    --text:#eaf2ff;    /* ice */
+    --muted:#8ea0bd;   /* steel */
+    --good:#00d47e;    /* green */
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:ui-rounded, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background: radial-gradient(1200px 800px at 50% -20%, #1b2440 0%, var(--bg) 55%);
+    color:var(--text);
+  }
+  header{
+    position:sticky; top:0; z-index:5;
+    background:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent3),var(--accent4));
+    color:#05060a; padding:14px 16px; text-align:center; font-weight:800; letter-spacing:.5px;
+    text-transform:uppercase; font-size:clamp(16px,3vw,22px);
+    text-shadow:0 1px 0 rgba(255,255,255,.4);
+  }
+  .wrap{max-width:960px; margin:20px auto; padding:0 14px;}
+  .card{background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(0,0,0,.2)); border:1px solid #26304b; border-radius:18px; padding:16px; box-shadow:0 10px 24px rgba(0,0,0,.25), inset 0 0 40px rgba(255,255,255,.03)}
+  .flex{display:flex; gap:16px; flex-wrap:wrap; align-items:stretch}
+  .col{flex:1 1 320px}/* Roulette Wheel */ .roulette{ position:relative; width:min(86vw,360px); height:min(86vw,360px); margin:0 auto; border-radius:50%; border:12px solid #0f1320; box-shadow:0 12px 40px rgba(0,0,0,.45); transition:transform 4.2s cubic-bezier(.2,.9,.18,1.02); background:#111; } .pointer{ position:relative; width:0; height:0; border-left:16px solid transparent; border-right:16px solid transparent; border-bottom:22px solid var(--accent3); margin:8px auto 10px; filter:drop-shadow(0 2px 0 #0008)} .wheel-legend{font-size:12px; color:var(--muted); text-align:center; margin-top:8px}
+
+.controls{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:center; margin-top:14px } .btn{ appearance:none; border:none; background:linear-gradient(180deg, var(--accent), #b11a3a); color:white; font-weight:800; padding:12px 16px; border-radius:12px; box-shadow:0 8px 18px rgba(255,45,85,.35); text-transform:uppercase; letter-spacing:.5px; cursor:pointer; } .btn:active{ transform:translateY(1px) } .btn.secondary{ background:linear-gradient(180deg, #32405f, #1e2841); box-shadow:none; border:1px solid #2a3552; text-transform:none; letter-spacing:0 } .btn.good{ background:linear-gradient(180deg, var(--good), #02a764); box-shadow:0 8px 18px rgba(0,212,126,.3) } .toggle{ display:inline-flex; align-items:center; gap:10px; padding:8px 12px; background:#0f1628; border-radius:12px; border:1px solid #283251; cursor:pointer } .toggle input{accent-color:var(--accent2); width:18px; height:18px}
+
+.filters{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; margin-top:12px} .chip{ display:flex; align-items:center; gap:8px; background:#10182a; border:1px solid #26304b; padding:10px 12px; border-radius:12px; } .chip input{ width:18px; height:18px; accent-color:var(--accent2) }
+
+.result-card{ background:linear-gradient(180deg, rgba(255,212,0,.12), rgba(124,77,255,.12)); border:1px dashed #4b3bb4 } .result-title{ font-weight:900; font-size:20px; margin:0 0 6px } .macro{ display:inline-grid; grid-template-columns:auto auto; gap:2px 8px; padding:6px 10px; background:#0e1526; border:1px solid #233054; border-radius:10px; font-size:13px } .macro strong{ color:var(--accent2) }
+
+.grid14{ display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:12px } .day{ background:#0e1526; border:1px solid #273356; border-radius:14px; padding:10px } .day h4{ margin:0 0 6px; font-size:14px; color:#d9e7ff; letter-spacing:.2px } .day .meal{ font-weight:700; margin-bottom:4px } .muted{ color:var(--muted) }
+
+.footer-note{ color:#9fb3d9; font-size:12px; text-align:center; margin-top:10px }
+
+/* Vibrant gradient badge */ .badge{ display:inline-block; padding:6px 10px; border-radius:999px; font-size:12px; font-weight:900; letter-spacing:.3px; color:#091016; background:linear-gradient(90deg,var(--accent3),var(--accent2)); }
+
+/* List of wheel items for reference */ .wheel-items{ font-size:12px; color:#b7c6e6; max-height:120px; overflow:auto; border:1px solid #233054; border-radius:12px; padding:8px; }
+
+/* Responsive buttons */ .controls .btn{ flex:1 1 140px }
+
+a.link{color:var(--accent2)} </style>
+
+</head>
+<body>
+  <header>Fred and Fudwa's quick meal prep plan</header>
+  <div class="wrap"><section class="card" id="dailyPick">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+    <div>
+      <span class="badge">Meal of the Day</span>
+      <h2 id="motdTitle" style="margin:.4rem 0 0;font-size:22px"></h2>
+      <div class="muted" id="motdMacros"></div>
+    </div>
+    <button class="btn secondary" id="regenMOTD" title="Pick a new one from your current filters">Shuffle</button>
+  </div>
+</section>
+
+<div class="flex" style="margin-top:16px">
+  <div class="col card">
+    <div class="pointer"></div>
+    <div class="roulette" id="wheel" aria-label="Meal roulette wheel"></div>
+    <div class="wheel-legend">Tap SPIN to get a meal. Wheel builds from your selected options.</div>
+    <div class="controls">
+      <button class="btn" id="spinBtn">Spin 🎡</button>
+      <label class="toggle" title="Polyphonic sound while spinning">
+        <input type="checkbox" id="muteToggle" /> Mute
+      </label>
+      <button class="btn secondary" id="rebuildBtn" title="Rebuild wheel from current filters">Rebuild Wheel</button>
+    </div>
+    <div style="margin-top:10px">
+      <div class="wheel-items" id="wheelItems"></div>
+    </div>
+  </div>
+
+  <div class="col card">
+    <h3 style="margin:0 0 8px">Choose your protein & base</h3>
+    <div class="filters" id="filters"></div>
+    <div class="footer-note">Tip: select at least one option. If none are selected, all meals are used.</div>
+
+    <div class="card result-card" style="margin-top:12px">
+      <div class="result-title" id="selectionName">Spin to select a meal 🔄</div>
+      <div class="muted" id="selectionCats"></div>
+      <div style="margin-top:8px">
+        <div class="macro" id="selectionMacros"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="card" style="margin-top:16px">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <h3 style="margin:0">14‑Day High‑Protein Plan</h3>
+    <div class="controls" style="margin:0">
+      <button class="btn good" id="gen14">Generate Plan</button>
+      <button class="btn secondary" id="reset14">Reset</button>
+    </div>
+  </div>
+  <div class="grid14" id="planGrid" style="margin-top:10px"></div>
+  <div class="footer-note">Macros are approximate. Aim for ~30–50g protein per meal and balance carbs & essential fats for training.</div>
+</section>
+
+<section class="card" style="margin:18px 0">
+  <h3 style="margin:0 0 6px">How to use</h3>
+  <ol style="margin:6px 0 0 18px; line-height:1.6">
+    <li>Select any combination of <em>Fish, Beef, Chicken, Pasta, Rice, Legumes, Vegetarian, Eggs/Other</em>.</li>
+    <li>Tap <strong>Rebuild Wheel</strong> (or it will auto‑rebuild) to fill the roulette from your options.</li>
+    <li>Tap <strong>Spin</strong> to get a meal. A polyphonic tone plays while it spins (toggle <strong>Mute</strong> if you like).</li>
+    <li>Tap <strong>Generate Plan</strong> to create a 14‑day plan. Tap <strong>Reset</strong> to clear it.</li>
+    <li>“Meal of the Day” gives you a daily pick, influenced by your filters. Tap <strong>Shuffle</strong> to swap.</li>
+  </ol>
+  <p class="footer-note">Run this as a simple webpage (GitHub Pages works great). To package as an APK later, use a WebView wrapper (e.g., Capacitor + Android Studio) or PWABuilder after adding a manifest.</p>
+</section>
+
+  </div><script>
+// ======= Data: ~50+ meal variations with macros =======
+const MEALS = [
+  // Beef
+  m('Beef Stir‑Fry w/ Broccoli & Brown Rice', ['beef','rice'], 560, 42, 14, 62),
+  m('Spaghetti Bolognese (Lean + Lentils)', ['beef','pasta','legumes'], 610, 40, 16, 78),
+  m('Grilled Sirloin + Quinoa & Green Beans', ['beef','rice'], 640, 45, 18, 62),
+  m('Chili con Carne (Kidney Beans)', ['beef','legumes'], 580, 44, 15, 58),
+  m('Beef Kebabs + Tabbouleh', ['beef','rice'], 520, 38, 12, 56),
+  m('Beef & Chickpea Power Bowl', ['beef','legumes','rice'], 610, 42, 17, 68),
+  m('Lettuce‑Bun Beef Burger + Sweet Potato', ['beef'], 590, 40, 18, 58),
+  m('Beef Fried Rice (Eggs)', ['beef','rice','eggs'], 630, 41, 17, 74),
+  m('Beef Burrito Bowl', ['beef','rice','legumes'], 650, 45, 16, 72),
+  m('Beef & Veg Stew (Peas/Carrots)', ['beef'], 520, 38, 14, 48),
+
+  // Chicken
+  m('Grilled Lemon‑Herb Chicken + Couscous', ['chicken','rice'], 560, 44, 12, 62),
+  m('Chicken Alfredo (Greek Yogurt, HP Pasta)', ['chicken','pasta'], 620, 42, 16, 72),
+  m('Chicken Curry + Basmati', ['chicken','rice'], 610, 40, 18, 68),
+  m('Chicken Stir‑Fry Noodles', ['chicken','pasta'], 600, 41, 12, 78),
+  m('BBQ Chicken + Roasted Veg & Sweet Potato', ['chicken'], 580, 38, 13, 64),
+  m('Chicken Fajita Bowl (Black Beans)', ['chicken','rice','legumes'], 640, 44, 14, 76),
+  m('Chicken Caesar (HP Dressing) + Crouton Crunch', ['chicken'], 540, 38, 16, 42),
+  m('Chicken & Quinoa Super Bowl', ['chicken','rice'], 590, 44, 14, 58),
+  m('Peri‑Peri Chicken + Pap/Rice & Slaw', ['chicken','rice'], 630, 43, 16, 70),
+  m('Chicken Pesto Pasta (HP Pasta)', ['chicken','pasta'], 650, 45, 18, 72),
+
+  // Fish & Seafood
+  m('Grilled Salmon + Quinoa & Greens', ['fish','rice'], 640, 42, 26, 42),
+  m('Hake Fillet + Brown Rice & Veg', ['fish','rice'], 560, 38, 12, 62),
+  m('Tuna Pasta (Olive Oil, Capers)', ['fish','pasta'], 630, 40, 16, 80),
+  m('Cape Snoek + Sweet Potato & Spinach', ['fish'], 610, 39, 18, 64),
+  m('Prawn Stir‑Fry + Rice Noodles', ['fish','pasta'], 580, 36, 10, 80),
+  m('Tuna & Chickpea Lemon Bowl', ['fish','legumes'], 520, 41, 10, 52),
+  m('Sardines on Wholegrain + Side Salad', ['fish'], 510, 34, 18, 44),
+  m('Masala Hake Curry + Basmati', ['fish','rice'], 620, 38, 14, 86),
+  m('Teriyaki Salmon & Edamame Rice', ['fish','rice','legumes'], 660, 44, 20, 72),
+  m('Prawn & Veg Fried Rice', ['fish','rice','eggs'], 620, 36, 12, 86),
+
+  // Vegetarian / Legumes / Other HP
+  m('Lentil Bolognese (HP Pasta)', ['vegetarian','legumes','pasta'], 590, 34, 10, 92),
+  m('Chickpea & Spinach Curry + Brown Rice', ['vegetarian','legumes','rice'], 610, 29, 12, 96),
+  m('Tofu Stir‑Fry + Rice', ['vegetarian','rice'], 560, 30, 14, 76),
+  m('Paneer Tikka Masala + Basmati', ['vegetarian','rice'], 680, 32, 24, 84),
+  m('Black Bean Burrito Bowl', ['vegetarian','legumes','rice'], 640, 28, 14, 96),
+  m('Quinoa & Black Bean Power Bowl', ['vegetarian','legumes','rice'], 620, 26, 12, 98),
+  m('Mushroom Stroganoff (HP Pasta)', ['vegetarian','pasta'], 610, 25, 14, 98),
+  m('Greek Chickpea Salad + Feta + Pita', ['vegetarian','legumes'], 520, 22, 16, 66),
+  m('Halloumi & Lentil Warm Salad', ['vegetarian','legumes'], 590, 28, 22, 56),
+  m('Tofu Peanut Noodles', ['vegetarian','pasta'], 630, 30, 20, 88),
+
+  // Eggs / Other
+  m('3‑Egg Omelette + Cottage Cheese & Veg', ['eggs'], 520, 38, 22, 22),
+  m('Shakshuka + Butter Beans', ['eggs','legumes','vegetarian'], 560, 28, 20, 56),
+  m('Egg Fried Rice (Peas/Carrots)', ['eggs','rice'], 610, 26, 16, 88),
+  m('Protein Pancakes (Eggs + Oats) + Yogurt', ['eggs','vegetarian'], 590, 31, 14, 82),
+  m('Tuna Egg Salad Wrap (WW Tortilla)', ['fish','eggs'], 520, 36, 14, 48),
+
+  // More mixed ideas to reach 50+
+  m('Beef & Quinoa Stuffed Peppers', ['beef','rice'], 560, 40, 12, 60),
+  m('Chicken & Lentil Dhal + Rice', ['chicken','legumes','rice'], 640, 42, 14, 86),
+  m('Salmon Pesto Pasta (HP Pasta)', ['fish','pasta'], 670, 42, 22, 76),
+  m('Turkey Chili (Beans)', ['legumes'], 580, 40, 12, 64),
+  m('Beef Pho‑Style Noodle Bowl', ['beef','pasta'], 590, 38, 10, 86),
+  m('Chicken & Bean Enchilada Bake', ['chicken','legumes','pasta'], 650, 44, 16, 74),
+  m('Smoky Hake Tacos + Slaw', ['fish','pasta'], 600, 34, 14, 78),
+  m('Tofu & Edamame Protein Bowl', ['vegetarian','legumes','rice'], 610, 34, 16, 78),
+  m('Beef Soba Noodles', ['beef','pasta'], 640, 42, 16, 84),
+  m('Chicken Satay Skewers + Rice', ['chicken','rice'], 620, 40, 18, 72),
+  m('Tuna Nicoise‑Style Bowl', ['fish','eggs'], 560, 36, 16, 46),
+  m('Paneer & Chickpea Saag + Rice', ['vegetarian','legumes','rice'], 690, 30, 24, 90),
+  m('Beef Ragu (HP Pasta) + Greens', ['beef','pasta'], 640, 42, 18, 70),
+  m('Chicken & Broccoli HP Mac', ['chicken','pasta'], 660, 45, 16, 78),
+  m('Miso Salmon + Brown Rice & Pak Choi', ['fish','rice'], 630, 40, 20, 70),
+  m('Red Lentil Pasta Arrabbiata', ['vegetarian','legumes','pasta'], 580, 32, 8, 96),
+  m('Harissa Chicken + Couscous & Chickpeas', ['chicken','rice','legumes'], 650, 44, 14, 86),
+  m('Beef & Bean Stuffed Sweet Potatoes', ['beef','legumes'], 610, 40, 12, 86),
+  m('Tuna & White Bean Lemon Pasta', ['fish','legumes','pasta'], 640, 42, 14, 86),
+  m('Cottage Pie (Beef + Red Lentils)', ['beef','legumes'], 620, 42, 14, 74),
+  m('Chicken Teriyaki + Rice & Greens', ['chicken','rice'], 600, 38, 8, 86),
+  m('Hake & Bean Tomato Bake', ['fish','legumes'], 560, 36, 10, 64),
+  m('Tofu Pad Thai (Egg Optional)', ['vegetarian','pasta','eggs'], 640, 30, 18, 92),
+  m('Beef & Pea Risotto', ['beef','rice'], 620, 38, 14, 90),
+  m('Chickpea Pesto Pasta (No Chicken)', ['vegetarian','legumes','pasta'], 600, 28, 14, 94),
+  m('Chicken & Barley Veg Pot', ['chicken','rice'], 590, 36, 8, 90),
+  m('Egg & Bean Breakfast Burrito (Anytime)', ['eggs','legumes','pasta'], 620, 30, 18, 82),
+];
+function m(name, cats, kcal, p, f, c){ return {name, cats, kcal, p, f, c}; }
+
+// ======= Filters =======
+const FILTERS = [
+  {key:'fish', label:'Fish'},
+  {key:'beef', label:'Beef'},
+  {key:'chicken', label:'Chicken'},
+  {key:'pasta', label:'Pasta'},
+  {key:'rice', label:'Rice'},
+  {key:'legumes', label:'Legumes (High‑Protein)'},
+  {key:'vegetarian', label:'Vegetarian'},
+  {key:'eggs', label:'Eggs / Other'},
+];
+
+const filtersDiv = document.getElementById('filters');
+FILTERS.forEach(f=>{
+  const el = document.createElement('label');
+  el.className = 'chip';
+  el.innerHTML = `<input type="checkbox" data-key="${f.key}"> <span>${f.label}</span>`;
+  filtersDiv.appendChild(el);
+});
+
+function getActiveCats(){
+  const boxes = filtersDiv.querySelectorAll('input[type=checkbox]');
+  const active = [...boxes].filter(b=>b.checked).map(b=>b.dataset.key);
+  return active;
+}
+
+function mealMatches(m, cats){
+  if(!cats.length) return true; // none selected = all allowed
+  return cats.some(c=>m.cats.includes(c));
+}
+
+function filteredMeals(){
+  const cats = getActiveCats();
+  return MEALS.filter(m=>mealMatches(m,cats));
+}
+
+// ======= Roulette Wheel Build =======
+const wheel = document.getElementById('wheel');
+const wheelItemsBox = document.getElementById('wheelItems');
+let wheelMeals = [];
+let wheelAngle = 0;
+
+function vibrantColors(n){
+  // Generate n vibrant HSL colors
+  const arr=[]; const start = Math.random()*360;
+  for(let i=0;i<n;i++){
+    const hue = (start + i*(360/n))%360;
+    arr.push(`hsl(${hue} 95% 55%)`);
+  }
+  return arr;
+}
+
+function rebuildWheel(){
+  const pool = filteredMeals();
+  const N = Math.min(12, Math.max(6, pool.length || 12));
+  // sample up to N unique items from pool (or from MEALS if empty)
+  const src = pool.length? pool : MEALS;
+  const pick = sampleUnique(src, N);
+  wheelMeals = pick;
+
+  const colors = vibrantColors(wheelMeals.length);
+  const step = 100 / wheelMeals.length;
+  let grad = colors.map((c,i)=>`${c} ${i*step}% ${(i+1)*step}%`).join(',');
+  wheel.style.background = `conic-gradient(${grad})`;
+  wheel.style.transform = 'rotate(0deg)';
+  wheelAngle = 0;
+
+  wheelItemsBox.innerHTML = '<strong>Wheel items:</strong><br>' + wheelMeals.map((m,i)=>`${i+1}. ${m.name}`).join('<br>');
+
+  // Clear current selection card
+  setSelectionCard(null);
+}
+
+function sampleUnique(array, n){
+  const a = [...array];
+  const out=[]; n=Math.min(n,a.length);
+  for(let i=0;i<n;i++){
+    const idx = Math.floor(Math.random()*a.length);
+    out.push(a[idx]);
+    a.splice(idx,1);
+  }
+  return out;
+}
+
+// ======= Spin Logic =======
+const spinBtn = document.getElementById('spinBtn');
+const rebuildBtn = document.getElementById('rebuildBtn');
+spinBtn.addEventListener('click', ()=> spinWheel());
+rebuildBtn.addEventListener('click', ()=> rebuildWheel());
+
+const selectionName = document.getElementById('selectionName');
+const selectionCats = document.getElementById('selectionCats');
+const selectionMacros = document.getElementById('selectionMacros');
+
+function setSelectionCard(meal){
+  if(!meal){
+    selectionName.textContent = 'Spin to select a meal 🔄';
+    selectionCats.textContent = '';
+    selectionMacros.innerHTML = '';
+    return;
+  }
+  selectionName.textContent = meal.name;
+  selectionCats.textContent = 'Includes: ' + meal.cats.map(x=>x[0].toUpperCase()+x.slice(1)).join(', ');
+  selectionMacros.innerHTML = `
+    <span>Kcal</span><strong>${meal.kcal}</strong>
+    <span>Protein</span><strong>${meal.p}g</strong>
+    <span>Fats</span><strong>${meal.f}g</strong>
+    <span>Carbs</span><strong>${meal.c}g</strong>`;
+}
+
+function spinWheel(){
+  if(!wheelMeals.length) rebuildWheel();
+  // choose random target segment
+  const seg = 360 / wheelMeals.length;
+  const targetIdx = Math.floor(Math.random()*wheelMeals.length);
+  const extraTurns = 5 + Math.floor(Math.random()*3); // 5-7 turns
+  const targetAngle = 360 - (targetIdx * seg + seg/2); // pointer at 0deg top
+  const finalAngle = extraTurns*360 + targetAngle + (Math.random()*seg*0.2 - seg*0.1); // small jitter
+  wheelAngle = finalAngle;
+
+  // audio start
+  startSpinChord();
+
+  wheel.style.transition = 'transform 4.2s cubic-bezier(.2,.9,.18,1.02)';
+  wheel.style.transform = `rotate(${finalAngle}deg)`;
+
+  // finish
+  setTimeout(()=>{
+    stopSpinChord();
+    const chosen = wheelMeals[targetIdx];
+    setSelectionCard(chosen);
+  }, 4250);
+}
+
+// ======= Polyphonic Spin Audio =======
+let audioCtx, gainNode, oscils=[]; let muted=true;
+const muteToggle = document.getElementById('muteToggle');
+muteToggle.addEventListener('change',()=>{
+  muted = muteToggle.checked; if(gainNode) gainNode.gain.value = muted? 0 : 0.12;
+});
+
+function setupAudio(){
+  if(audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  gainNode = audioCtx.createGain();
+  gainNode.gain.value = muted? 0 : 0.12; // gentle
+  gainNode.connect(audioCtx.destination);
+}
+
+function startSpinChord(){
+  setupAudio();
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+  stopSpinChord(); // safety
+  // Build a bright major chord with a subtle arpeggio feel
+  const now = audioCtx.currentTime;
+  const freqs = [261.63, 329.63, 392.00, 523.25]; // C major (C E G C)
+  oscils = freqs.map((f,i)=>{
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = i%2? 'sawtooth':'square';
+    osc.frequency.value = f;
+    g.gain.value = 0.0001;
+    osc.connect(g).connect(gainNode);
+    osc.start(now + i*0.02); // slight stagger
+    // envelope
+    g.gain.exponentialRampToValueAtTime(muted? 0.0001 : 0.14, now + 0.3 + i*0.02);
+    return {osc, g};
+  });
+  // Gentle vibrato to feel like spinning
+  const lfo = audioCtx.createOscillator();
+  const lfoGain = audioCtx.createGain();
+  lfo.frequency.value = 6; lfoGain.gain.value = 8; // +/-8 Hz wobble
+  oscils.forEach(({osc})=> lfo.connect(lfoGain).connect(osc.frequency));
+  lfo.start();
+  oscils.push({osc:lfo, g:lfoGain, lfo:true});
+}
+
+function stopSpinChord(){
+  if(!audioCtx || !oscils.length) return;
+  const now = audioCtx.currentTime + 0.01;
+  oscils.forEach(({osc,g,lfo})=>{
+    try{
+      if(g && g.gain){ g.gain.cancelScheduledValues(now); g.gain.exponentialRampToValueAtTime(0.0001, now+0.2); }
+      osc.stop(now+0.25);
+    }catch(e){}
+  });
+  oscils=[];
+}
+
+// ======= 14‑Day Plan =======
+const planGrid = document.getElementById('planGrid');
+const gen14Btn = document.getElementById('gen14');
+const reset14Btn = document.getElementById('reset14');
+
+gen14Btn.addEventListener('click', ()=>{
+  const pool = filteredMeals();
+  const src = pool.length? pool : MEALS;
+  const plan = smartSample14(src);
+  renderPlan(plan);
+});
+
+reset14Btn.addEventListener('click', ()=>{
+  planGrid.innerHTML='';
+});
+
+function smartSample14(src){
+  // Try to avoid repeats and balance categories
+  const out=[]; const used=new Set();
+  const cats = getActiveCats();
+  const catBuckets = cats.length? cats : FILTERS.map(f=>f.key);
+  const buckets = {};
+  catBuckets.forEach(c=> buckets[c] = src.filter(m=>m.cats.includes(c)) );
+
+  // Round‑robin pull
+  let i=0; while(out.length<14){
+    const c = catBuckets[i % catBuckets.length];
+    const b = buckets[c];
+    const pick = pickUnique(b, used) || pickUnique(src, used);
+    if(pick){ out.push(pick); used.add(pick.name); }
+    else{ // fallback duplicates
+      out.push(src[Math.floor(Math.random()*src.length)]);
+    }
+    i++;
+  }
+  return out;
+}
+function pickUnique(arr, used){
+  const options = arr.filter(m=>!used.has(m.name));
+  if(!options.length) return null;
+  return options[Math.floor(Math.random()*options.length)];
+}
+
+function renderPlan(plan){
+  planGrid.innerHTML = '';
+  plan.forEach((meal, idx)=>{
+    const cell = document.createElement('div');
+    cell.className = 'day';
+    cell.innerHTML = `
+      <h4>Day ${idx+1}</h4>
+      <div class="meal">${meal.name}</div>
+      <div class="muted">${capCats(meal.cats)}</div>
+      <div class="macro" style="margin-top:6px">
+        <span>Kcal</span><strong>${meal.kcal}</strong>
+        <span>Protein</span><strong>${meal.p}g</strong>
+        <span>Fats</span><strong>${meal.f}g</strong>
+        <span>Carbs</span><strong>${meal.c}g</strong>
+      </div>`;
+    planGrid.appendChild(cell);
+  });
+}
+
+function capCats(c){return c.map(x=>x[0].toUpperCase()+x.slice(1)).join(', ')}
+
+// ======= Meal of the Day (seeded by date + filters) =======
+const motdTitle = document.getElementById('motdTitle');
+const motdMacros = document.getElementById('motdMacros');
+const regenMOTD = document.getElementById('regenMOTD');
+
+function seedRand(seed){
+  // mulberry32
+  return function(){
+    let t = seed += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  }
+}
+
+function pickMOTD(){
+  const d = new Date();
+  const seed = Number(`${d.getUTCFullYear()}${d.getUTCMonth()+1}${d.getUTCDate()}`);
+  const rng = seedRand(seed);
+  const pool = filteredMeals();
+  const src = pool.length? pool : MEALS;
+  const idx = Math.floor(rng()*src.length);
+  const meal = src[idx];
+  motdTitle.textContent = meal.name;
+  motdMacros.textContent = `~${meal.kcal} kcal · ${meal.p}g protein · ${meal.f}g fats · ${meal.c}g carbs`;
+}
+
+regenMOTD.addEventListener('click', ()=>{
+  // Shuffle based on a new random seed
+  const rng = seedRand(Date.now()|0);
+  const pool = filteredMeals();
+  const src = pool.length? pool : MEALS;
+  const meal = src[Math.floor(rng()*src.length)];
+  motdTitle.textContent = meal.name;
+  motdMacros.textContent = `~${meal.kcal} kcal · ${meal.p}g protein · ${meal.f}g fats · ${meal.c}g carbs`;
+});
+
+// ======= Auto rebuild on filter change =======
+filtersDiv.addEventListener('change', ()=>{ rebuildWheel(); pickMOTD(); });
+
+// ======= First render =======
+rebuildWheel();
+pickMOTD();
+</script></body>
+</html>
