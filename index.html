@@ -49,7 +49,11 @@
 
 /* Responsive buttons */ .controls .btn{ flex:1 1 140px }
 
-a.link{color:var(--accent2)} </style>
+a.link{color:var(--accent2)}
+
+/* ===== Modal / Dialog ===== */ .modal-backdrop{ position:fixed; inset:0; background:rgba(2,6,23,.7); display:none; align-items:center; justify-content:center; z-index:50 } .modal{ width:min(94vw,720px); max-height:86vh; overflow:auto; background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.25)); border:1px solid #2b3657; border-radius:18px; box-shadow:0 20px 60px rgba(0,0,0,.55); padding:16px } .modal h3{ margin:0 0 6px; font-size:22px } .modal .muted{ margin-bottom:8px } .modal .macro{ margin:8px 0 } .modal .row{ display:grid; grid-template-columns: 1fr 2fr; gap:14px } .modal .actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:10px; flex-wrap:wrap } .btn.warn{ background:linear-gradient(180deg,#ff9f0a,#c87400) }
+
+@media(max-width:640px){ .modal .row{ grid-template-columns:1fr } } </style>
 
 </head>
 <body>
@@ -61,7 +65,10 @@ a.link{color:var(--accent2)} </style>
       <h2 id="motdTitle" style="margin:.4rem 0 0;font-size:22px"></h2>
       <div class="muted" id="motdMacros"></div>
     </div>
-    <button class="btn secondary" id="regenMOTD" title="Pick a new one from your current filters">Shuffle</button>
+    <div class="controls" style="margin:0">
+      <button class="btn secondary" id="regenMOTD" title="Pick a new one from your current filters">Shuffle</button>
+      <button class="btn" id="motdRecipeBtn" title="Show recipe for Meal of the Day">Recipe 📖</button>
+    </div>
   </div>
 </section>
 
@@ -93,6 +100,9 @@ a.link{color:var(--accent2)} </style>
       <div style="margin-top:8px">
         <div class="macro" id="selectionMacros"></div>
       </div>
+      <div class="controls" style="margin-top:10px">
+        <button class="btn" id="selectionRecipeBtn" title="Show recipe for selected meal" disabled>Recipe 📖</button>
+      </div>
     </div>
   </div>
 </div>
@@ -116,11 +126,31 @@ a.link{color:var(--accent2)} </style>
     <li>Tap <strong>Rebuild Wheel</strong> (or it will auto‑rebuild) to fill the roulette from your options.</li>
     <li>Tap <strong>Spin</strong> to get a meal. A polyphonic tone plays while it spins (toggle <strong>Mute</strong> if you like).</li>
     <li>Tap <strong>Generate Plan</strong> to create a 14‑day plan. Tap <strong>Reset</strong> to clear it.</li>
-    <li>“Meal of the Day” gives you a daily pick, influenced by your filters. Tap <strong>Shuffle</strong> to swap.</li>
+    <li>Use <strong>Recipe</strong> buttons to view ingredients & step‑by‑step prep in a large dialog, with Close & Screenshot.</li>
   </ol>
-  <p class="footer-note">Run this as a simple webpage (GitHub Pages works great). To package as an APK later, use a WebView wrapper (e.g., Capacitor + Android Studio) or PWABuilder after adding a manifest.</p>
+  <p class="footer-note">Host as a webpage or package as an APK with Capacitor. Screenshot uses html2canvas (loaded on demand).</p>
 </section>
 
+  </div>  <!-- Modal for Recipe -->  <div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal" id="recipeModal">
+      <h3 id="modalTitle">Recipe</h3>
+      <div class="muted" id="modalCats"></div>
+      <div class="macro" id="modalMacros"></div>
+      <div class="row">
+        <div>
+          <h4 style="margin:8px 0 6px">Ingredients</h4>
+          <ul id="modalIngredients" style="line-height:1.6;margin:0 0 8px 18px"></ul>
+        </div>
+        <div>
+          <h4 style="margin:8px 0 6px">Preparation</h4>
+          <ol id="modalSteps" style="line-height:1.6;margin:0 0 8px 18px"></ol>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn secondary" id="closeModal">Close ✖</button>
+        <button class="btn warn" id="shotModal">Screenshot 📸</button>
+      </div>
+    </div>
   </div><script>
 // ======= Data: ~50+ meal variations with macros =======
 const MEALS = [
@@ -179,7 +209,7 @@ const MEALS = [
   m('Protein Pancakes (Eggs + Oats) + Yogurt', ['eggs','vegetarian'], 590, 31, 14, 82),
   m('Tuna Egg Salad Wrap (WW Tortilla)', ['fish','eggs'], 520, 36, 14, 48),
 
-  // More mixed ideas to reach 50+
+  // More mixed ideas
   m('Beef & Quinoa Stuffed Peppers', ['beef','rice'], 560, 40, 12, 60),
   m('Chicken & Lentil Dhal + Rice', ['chicken','legumes','rice'], 640, 42, 14, 86),
   m('Salmon Pesto Pasta (HP Pasta)', ['fish','pasta'], 670, 42, 22, 76),
@@ -281,6 +311,7 @@ function rebuildWheel(){
 
   // Clear current selection card
   setSelectionCard(null);
+  document.getElementById('selectionRecipeBtn').disabled = true;
 }
 
 function sampleUnique(array, n){
@@ -303,6 +334,7 @@ rebuildBtn.addEventListener('click', ()=> rebuildWheel());
 const selectionName = document.getElementById('selectionName');
 const selectionCats = document.getElementById('selectionCats');
 const selectionMacros = document.getElementById('selectionMacros');
+const selectionRecipeBtn = document.getElementById('selectionRecipeBtn');
 
 function setSelectionCard(meal){
   if(!meal){
@@ -318,6 +350,8 @@ function setSelectionCard(meal){
     <span>Protein</span><strong>${meal.p}g</strong>
     <span>Fats</span><strong>${meal.f}g</strong>
     <span>Carbs</span><strong>${meal.c}g</strong>`;
+  selectionRecipeBtn.disabled = false;
+  selectionRecipeBtn.onclick = ()=> showRecipe(meal);
 }
 
 function spinWheel(){
@@ -449,14 +483,18 @@ function renderPlan(plan){
     cell.className = 'day';
     cell.innerHTML = `
       <h4>Day ${idx+1}</h4>
-      <div class="meal">${meal.name}</div>
-      <div class="muted">${capCats(meal.cats)}</div>
-      <div class="macro" style="margin-top:6px">
+      <div class=\"meal\">${meal.name}</div>
+      <div class=\"muted\">${capCats(meal.cats)}</div>
+      <div class=\"macro\" style=\"margin-top:6px\">
         <span>Kcal</span><strong>${meal.kcal}</strong>
         <span>Protein</span><strong>${meal.p}g</strong>
         <span>Fats</span><strong>${meal.f}g</strong>
         <span>Carbs</span><strong>${meal.c}g</strong>
+      </div>
+      <div class=\"controls\" style=\"margin-top:8px\">
+        <button class=\"btn\" data-recipe-for=\"${meal.name.replace(/&/g,'&amp;')}\">Recipe 📖</button>
       </div>`;
+    cell.querySelector('button[data-recipe-for]').onclick = ()=> showRecipe(meal);
     planGrid.appendChild(cell);
   });
 }
@@ -467,6 +505,8 @@ function capCats(c){return c.map(x=>x[0].toUpperCase()+x.slice(1)).join(', ')}
 const motdTitle = document.getElementById('motdTitle');
 const motdMacros = document.getElementById('motdMacros');
 const regenMOTD = document.getElementById('regenMOTD');
+const motdRecipeBtn = document.getElementById('motdRecipeBtn');
+let currentMOTD = null;
 
 function seedRand(seed){
   // mulberry32
@@ -486,18 +526,113 @@ function pickMOTD(){
   const src = pool.length? pool : MEALS;
   const idx = Math.floor(rng()*src.length);
   const meal = src[idx];
+  currentMOTD = meal;
   motdTitle.textContent = meal.name;
   motdMacros.textContent = `~${meal.kcal} kcal · ${meal.p}g protein · ${meal.f}g fats · ${meal.c}g carbs`;
 }
 
 regenMOTD.addEventListener('click', ()=>{
-  // Shuffle based on a new random seed
   const rng = seedRand(Date.now()|0);
   const pool = filteredMeals();
   const src = pool.length? pool : MEALS;
   const meal = src[Math.floor(rng()*src.length)];
+  currentMOTD = meal;
   motdTitle.textContent = meal.name;
   motdMacros.textContent = `~${meal.kcal} kcal · ${meal.p}g protein · ${meal.f}g fats · ${meal.c}g carbs`;
+});
+
+motdRecipeBtn.addEventListener('click', ()=>{
+  if(!currentMOTD){ pickMOTD(); }
+  showRecipe(currentMOTD);
+});
+
+// ======= Modal Logic & Recipe Builder =======
+const backdrop = document.getElementById('modalBackdrop');
+const modal = document.getElementById('recipeModal');
+const modalTitle = document.getElementById('modalTitle');
+const modalCats = document.getElementById('modalCats');
+const modalMacros = document.getElementById('modalMacros');
+const modalIngredients = document.getElementById('modalIngredients');
+const modalSteps = document.getElementById('modalSteps');
+const closeModalBtn = document.getElementById('closeModal');
+const shotModalBtn = document.getElementById('shotModal');
+
+function showRecipe(meal){
+  const data = buildRecipe(meal);
+  modalTitle.textContent = data.title;
+  modalCats.textContent = 'Includes: ' + capCats(meal.cats);
+  modalMacros.innerHTML = `
+    <span>Kcal</span><strong>${meal.kcal}</strong>
+    <span>Protein</span><strong>${meal.p}g</strong>
+    <span>Fats</span><strong>${meal.f}g</strong>
+    <span>Carbs</span><strong>${meal.c}g</strong>`;
+  modalIngredients.innerHTML = data.ingredients.map(i=>`<li>${i}</li>`).join('');
+  modalSteps.innerHTML = data.steps.map(s=>`<li>${s}</li>`).join('');
+  backdrop.style.display = 'flex';
+  backdrop.setAttribute('aria-hidden','false');
+}
+
+function hideRecipe(){
+  backdrop.style.display = 'none';
+  backdrop.setAttribute('aria-hidden','true');
+}
+
+backdrop.addEventListener('click', (e)=>{ if(e.target===backdrop) hideRecipe(); });
+closeModalBtn.addEventListener('click', hideRecipe);
+
+// Build a reasonable, generic recipe from the meal name & categories
+function buildRecipe(meal){
+  const title = meal.name;
+  const protein = meal.cats.find(c=>['beef','chicken','fish','eggs'].includes(c))|| (meal.cats.includes('vegetarian')? 'vegetarian protein':'protein');
+  const base = meal.cats.find(c=>['rice','pasta','legumes'].includes(c))||'veg';
+  const ing = [
+    `400g ${protein} (serves 2)`,
+    base==='rice'? '1 cup dry rice (or quinoa/couscous)': base==='pasta'? '250g high‑protein pasta': base==='legumes'? '1 can beans/lentils, drained': 'Mixed veg (2–3 cups)',
+    '1 tbsp olive oil',
+    '1 medium onion, chopped',
+    '2 cloves garlic, minced',
+    'Spice mix: salt, pepper, paprika (+ chili/peri‑peri if you like)',
+    'Optional: herbs (parsley/coriander), lemon',
+  ];
+  // Extra hints from name
+  if(/curry|masala|saag/i.test(title)) ing.push('1 cup light coconut milk or tomato puree + curry spices');
+  if(/pesto/i.test(title)) ing.push('2 tbsp basil pesto');
+  if(/stir|fried|noodles|pad thai/i.test(title)) ing.push('2 tbsp low‑sodium soy/teriyaki');
+  if(/bolognese|ragu/i.test(title)) ing.push('1 tin crushed tomatoes + Italian herbs');
+  if(/satay|peanut/i.test(title)) ing.push('1.5 tbsp peanut butter + splash soy + lime');
+
+  const steps = [
+    `Prep: dice veg; season the ${protein}. Start cooking ${base==='rice'? 'rice/quinoa per packet': base==='pasta'? 'pasta in salted water until al dente': base==='legumes'? 'legumes (drain & rinse)': 'veg prep'}.`,
+    `Heat oil in a large pan. Sauté onion 2–3 min, add garlic 30 sec.`,
+    `Add ${protein}; cook until browned (5–7 min for diced/strips; fish 3–4 min/side).`,
+    `Add veg and chosen sauce/flavour (${/curry|masala|saag/i.test(title)? 'curry base' : /bolognese|ragu/i.test(title)? 'tomato + herbs' : /pesto/i.test(title)? 'pesto' : /stir|fried|noodles|teriyaki/i.test(title)? 'soy/teriyaki' : 'seasonings'}) and simmer 3–6 min.`,
+    base==='rice'? 'Fluff rice; serve bowls topped with the pan mix.' : base==='pasta'? 'Drain pasta; toss with sauce/protein; finish with herbs.' : base==='legumes'? 'Fold in legumes to warm through 2–3 min; serve.' : 'Plate the sauté over veg or with salad.',
+    'Finish: adjust seasoning, add lemon/herbs. Eat hot.'
+  ];
+
+  return { title, ingredients: ing, steps };
+}
+
+// ======= Screenshot (dialog only) using html2canvas (lazy loaded) =======
+async function ensureHtml2Canvas(){
+  if(window.html2canvas) return;
+  const s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+  document.body.appendChild(s);
+  await new Promise(res=> s.onload = res);
+}
+
+shotModalBtn.addEventListener('click', async ()=>{
+  await ensureHtml2Canvas();
+  const node = document.getElementById('recipeModal');
+  const canvas = await html2canvas(node, {backgroundColor: '#0b0f17', scale: 2});
+  canvas.toBlob(blob=>{
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = (modalTitle.textContent || 'recipe') + '.png';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
 });
 
 // ======= Auto rebuild on filter change =======
